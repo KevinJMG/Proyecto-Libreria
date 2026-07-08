@@ -13,6 +13,16 @@ import { useLibrary } from "@/lib/library-store";
 import type { Role } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/auth")({
+  beforeLoad: () => {
+    // Si ya está autenticado, redirigir al dashboard
+    if (typeof window !== "undefined") {
+      const raw = window.localStorage.getItem("lib.user");
+      if (raw) {
+        throw new Error("Redirect to dashboard");
+        // Nota: En TanStack Router, esto se maneja mejor en el loader
+      }
+    }
+  },
   head: () => ({
     meta: [
       { title: "Ingresar — Biblioteca" },
@@ -24,8 +34,8 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const { login, register } = useLibrary();
-  const [loading, setLoading] = useState(false);
+  const { login, register, loading } = useLibrary();
+  const [isLoading, setIsLoading] = useState(false);
 
   // login
   const [lEmail, setLEmail] = useState("");
@@ -46,13 +56,16 @@ function AuthPage() {
       toast.error("Completa correo y contraseña");
       return;
     }
-    setLoading(true);
-    await new Promise((r) => setTimeout(r, 500));
-    // Demo: admin@lib.com => admin. Cualquier otro => user
-    const role: Role = lEmail.toLowerCase().startsWith("admin") ? "admin" : "user";
-    login(lEmail, role);
-    toast.success("Sesión iniciada");
-    navigate({ to: "/dashboard" });
+    setIsLoading(true);
+    try {
+      await login(lEmail, lPass);
+      toast.success("Sesión iniciada correctamente");
+      navigate({ to: "/dashboard" });
+    } catch (error: any) {
+      toast.error(error.message || "Error al iniciar sesión");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -65,15 +78,30 @@ function AuthPage() {
       toast.error("Las contraseñas no coinciden");
       return;
     }
+    if (rPass.length < 6) {
+      toast.error("La contraseña debe tener al menos 6 caracteres");
+      return;
+    }
     if (!rTerms) {
       toast.error("Debes aceptar los términos");
       return;
     }
-    setLoading(true);
-    await new Promise((r) => setTimeout(r, 500));
-    register({ name: rName, email: rEmail, username: rUser, role: rRole });
-    toast.success("Cuenta creada");
-    navigate({ to: "/dashboard" });
+    setIsLoading(true);
+    try {
+      await register({ 
+        name: rName, 
+        email: rEmail, 
+        username: rUser, 
+        password: rPass,
+        role: rRole 
+      });
+      toast.success("Cuenta creada correctamente");
+      navigate({ to: "/dashboard" });
+    } catch (error: any) {
+      toast.error(error.message || "Error al crear la cuenta");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -127,24 +155,23 @@ function AuthPage() {
             <TabsContent value="login" className="mt-6">
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="l-email">Correo o usuario</Label>
+                  <Label htmlFor="l-email">Correo electrónico</Label>
                   <Input
                     id="l-email"
+                    type="email"
                     placeholder="tu@correo.com"
                     value={lEmail}
                     onChange={(e) => setLEmail(e.target.value)}
                     autoComplete="email"
+                    required
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Tip: usa <span className="font-mono">admin@lib.com</span> para acceso admin.
-                  </p>
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="l-pass">Contraseña</Label>
                     <button
                       type="button"
-                      onClick={() => toast.info("Función demo: no hay backend aún.")}
+                      onClick={() => toast.info("Contacta al administrador para restablecer tu contraseña")}
                       className="text-xs text-primary hover:underline"
                     >
                       ¿Olvidaste tu contraseña?
@@ -153,13 +180,19 @@ function AuthPage() {
                   <Input
                     id="l-pass"
                     type="password"
+                    placeholder="••••••••"
                     value={lPass}
                     onChange={(e) => setLPass(e.target.value)}
                     autoComplete="current-password"
+                    required
                   />
                 </div>
-                <Button type="submit" className="w-full bg-gradient-brand text-white shadow-brand hover:opacity-90" disabled={loading}>
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Iniciar sesión"}
+                <Button 
+                  type="submit" 
+                  className="w-full bg-gradient-brand text-white shadow-brand hover:opacity-90" 
+                  disabled={isLoading || loading}
+                >
+                  {(isLoading || loading) ? <Loader2 className="h-4 w-4 animate-spin" /> : "Iniciar sesión"}
                 </Button>
               </form>
             </TabsContent>
@@ -169,25 +202,55 @@ function AuthPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label htmlFor="r-name">Nombre completo</Label>
-                    <Input id="r-name" value={rName} onChange={(e) => setRName(e.target.value)} />
+                    <Input 
+                      id="r-name" 
+                      value={rName} 
+                      onChange={(e) => setRName(e.target.value)} 
+                      required
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="r-user">Usuario</Label>
-                    <Input id="r-user" value={rUser} onChange={(e) => setRUser(e.target.value)} />
+                    <Input 
+                      id="r-user" 
+                      value={rUser} 
+                      onChange={(e) => setRUser(e.target.value)} 
+                      required
+                    />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="r-email">Email</Label>
-                  <Input id="r-email" type="email" value={rEmail} onChange={(e) => setREmail(e.target.value)} />
+                  <Input 
+                    id="r-email" 
+                    type="email" 
+                    value={rEmail} 
+                    onChange={(e) => setREmail(e.target.value)} 
+                    required
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label htmlFor="r-pass">Contraseña</Label>
-                    <Input id="r-pass" type="password" value={rPass} onChange={(e) => setRPass(e.target.value)} />
+                    <Input 
+                      id="r-pass" 
+                      type="password" 
+                      placeholder="Mínimo 6 caracteres"
+                      value={rPass} 
+                      onChange={(e) => setRPass(e.target.value)} 
+                      required
+                      minLength={6}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="r-pass2">Confirmar</Label>
-                    <Input id="r-pass2" type="password" value={rPass2} onChange={(e) => setRPass2(e.target.value)} />
+                    <Input 
+                      id="r-pass2" 
+                      type="password" 
+                      value={rPass2} 
+                      onChange={(e) => setRPass2(e.target.value)} 
+                      required
+                    />
                     {rPass2 && rPass !== rPass2 && (
                       <p className="text-xs text-destructive">No coincide</p>
                     )}
@@ -216,8 +279,12 @@ function AuthPage() {
                     Acepto los <span className="text-primary underline">términos y condiciones</span>.
                   </span>
                 </label>
-                <Button type="submit" className="w-full bg-gradient-brand text-white shadow-brand hover:opacity-90" disabled={loading}>
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Crear cuenta"}
+                <Button 
+                  type="submit" 
+                  className="w-full bg-gradient-brand text-white shadow-brand hover:opacity-90" 
+                  disabled={isLoading || loading}
+                >
+                  {(isLoading || loading) ? <Loader2 className="h-4 w-4 animate-spin" /> : "Crear cuenta"}
                 </Button>
               </form>
             </TabsContent>

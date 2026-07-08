@@ -1,156 +1,469 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import {
-  CURRENT_USER_ID,
-  INITIAL_BOOKS,
-  INITIAL_LOANS,
-  type Book,
-  type Loan,
-  type Role,
-  type User,
-} from "./mock-data";
+import { supabase } from "./supabase";
+import type { Book, Loan, Role, User } from "./mock-data";
+import { toast } from "sonner";
 
 interface LibraryState {
   user: User | null;
   books: Book[];
   loans: Loan[];
   theme: "light" | "dark";
-  login: (email: string, role: Role, name?: string) => void;
-  logout: () => void;
-  register: (data: { name: string; email: string; username: string; role: Role }) => void;
+  loading: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  register: (data: { 
+    name: string; 
+    email: string; 
+    username: string; 
+    password: string; 
+    role: Role 
+  }) => Promise<void>;
   toggleTheme: () => void;
-  updateUser: (patch: Partial<User>) => void;
-  requestLoan: (bookId: string) => void;
-  returnLoan: (loanId: string) => void;
-  renewLoan: (loanId: string) => void;
-  addBook: (book: Omit<Book, "id" | "popularity">) => void;
-  updateBook: (id: string, patch: Partial<Book>) => void;
-  deleteBook: (id: string) => void;
+  updateUser: (patch: Partial<User>) => Promise<void>;
+  requestLoan: (bookId: string) => Promise<void>;
+  returnLoan: (loanId: string) => Promise<void>;
+  renewLoan: (loanId: string) => Promise<void>;
+  addBook: (book: Omit<Book, "id" | "popularity">) => Promise<void>;
+  updateBook: (id: string, patch: Partial<Book>) => Promise<void>;
+  deleteBook: (id: string) => Promise<void>;
+  loadUserData: () => Promise<void>;
 }
 
 const LibraryContext = createContext<LibraryState | null>(null);
 
-const addDays = (n: number) => {
-  const d = new Date();
-  d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0, 10);
-};
-
 export function LibraryProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
     if (typeof window === "undefined") return null;
-    const raw = window.localStorage.getItem("lib.user");
-    return raw ? (JSON.parse(raw) as User) : null;
+    const raw = localStorage.getItem("lib.user");
+    return raw ? JSON.parse(raw) : null;
   });
-  const [books, setBooks] = useState<Book[]>(INITIAL_BOOKS);
-  const [loans, setLoans] = useState<Loan[]>(INITIAL_LOANS);
+  const [books, setBooks] = useState<Book[]>([]);
+  const [loans, setLoans] = useState<Loan[]>([]);
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     if (typeof window === "undefined") return "light";
     return (window.localStorage.getItem("lib.theme") as "light" | "dark") ?? "light";
   });
+  const [loading, setLoading] = useState(true);
 
+  // Cargar datos iniciales y suscribirse a cambios de autenticación
+  useEffect(() => {
+    const initAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        await loadUserData();
+      }
+      setLoading(false);
+    };
+    initAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+          await loadUserData();
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setBooks([]);
+          setLoans([]);
+          localStorage.removeItem('lib.user');
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Sincronizar tema con localStorage
   useEffect(() => {
     if (typeof document === "undefined") return;
     document.documentElement.classList.toggle("dark", theme === "dark");
     window.localStorage.setItem("lib.theme", theme);
   }, [theme]);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (user) window.localStorage.setItem("lib.user", JSON.stringify(user));
-    else window.localStorage.removeItem("lib.user");
-  }, [user]);
+  // ============================================
+  // FUNCIÓN PARA CARGAR DATOS DEL USUARIO
+  // ============================================
+  const loadUserData = async () => {
+    try {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) {
+        setUser(null);
+        return;
+      }
 
-  const value: LibraryState = useMemo(
+      // Obtener perfil
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', authUser.id)
+        .single();
+
+      const userData: User = {
+        id: authUser.id,
+        name: profile?.name || authUser.email?.split('@')[0] || 'Usuario',
+        email: authUser.email!,
+        username: profile?.username || authUser.email?.split('@')[0] || '',
+        role: profile?.role || 'user',
+        createdAt: authUser.created_at,
+      };
+      setUser(userData);
+      localStorage.setItem('lib.user', JSON.stringify(userData));
+
+      // Cargar TODOS los libros
+      const { data: booksData, error: booksError } = await supabase
+        .from('books')
+        .select('*')
+        .order('title');
+      
+      if (booksError) throw booksError;
+      
+      const mappedBooks: Book[] = (booksData || []).map((b: any) => ({
+        id: b.id,
+        title: b.title,
+        author: b.author,
+        isbn: b.isbn || '',
+        category: b.genre || 'Otros',
+        year: b.year || new Date().getFullYear(),
+        description: b.description || '',
+        coverUrl: b.cover_url || 'https://picsum.photos/seed/new/400/600',
+        available: b.available !== undefined ? b.available : true,
+        units: b.units || 0,
+        totalUnits: b.units || 0,
+        popularity: b.popularity || 50,
+      }));
+      
+      setBooks(mappedBooks);
+
+      // Cargar préstamos del usuario
+      const { data: loansData, error: loansError } = await supabase
+        .from('loans')
+        .select('*')
+        .eq('user_id', authUser.id)
+        .order('loan_date', { ascending: false });
+
+      if (loansError) throw loansError;
+      
+      const mappedLoans: Loan[] = (loansData || []).map((l: any) => ({
+        id: l.id,
+        bookId: l.book_id,
+        userId: l.user_id,
+        userName: l.user_name || 'Usuario',
+        loanDate: l.loan_date,
+        dueDate: l.due_date,
+        returnDate: l.return_date || undefined,
+        status: l.status || 'active',
+      }));
+      
+      setLoans(mappedLoans);
+    } catch (error) {
+      console.error('Error loading user data:', error);
+    }
+  };
+
+  // ============================================
+  // FUNCIONES DE AUTENTICACIÓN
+  // ============================================
+  const login = async (email: string, password: string) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) throw error;
+      
+      if (data.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+        
+        const userData = {
+          id: data.user.id,
+          name: profile?.name || data.user.email?.split('@')[0] || 'Usuario',
+          email: data.user.email!,
+          username: profile?.username || data.user.email?.split('@')[0] || '',
+          role: profile?.role || 'user',
+          createdAt: data.user.created_at,
+        };
+        
+        setUser(userData);
+        localStorage.setItem('lib.user', JSON.stringify(userData));
+        await loadUserData();
+      }
+    } catch (error: any) {
+      console.error('Login error:', error);
+      throw new Error(error.message || 'Error al iniciar sesión');
+    }
+  };
+
+  const register = async (data: { 
+    name: string; 
+    email: string; 
+    username: string; 
+    password: string; 
+    role: Role 
+  }) => {
+    const { error } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+      options: {
+        data: {
+          name: data.name,
+          username: data.username,
+          role: data.role,
+        },
+      },
+    });
+    if (error) throw error;
+  };
+
+  const logout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    localStorage.removeItem('lib.user');
+  };
+
+  // ============================================
+  // FUNCIONES DE PRÉSTAMOS
+  // ============================================
+  const requestLoan = async (bookId: string) => {
+    if (!user) {
+      toast.error('Debes iniciar sesión para solicitar un préstamo');
+      return;
+    }
+    
+    try {
+      const book = books.find(b => b.id === bookId);
+      if (!book) {
+        toast.error('Libro no encontrado');
+        return;
+      }
+      
+      if (book.units <= 0) {
+        toast.error('No hay unidades disponibles');
+        return;
+      }
+
+      const { error: loanError } = await supabase
+        .from('loans')
+        .insert({
+          book_id: bookId,
+          user_id: user.id,
+          user_name: user.name,
+          loan_date: new Date().toISOString().split('T')[0],
+          due_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          status: 'active',
+        });
+      
+      if (loanError) throw loanError;
+
+      const { error: updateError } = await supabase
+        .from('books')
+        .update({ 
+          units: book.units - 1,
+          available: book.units - 1 > 0 
+        })
+        .eq('id', bookId);
+      
+      if (updateError) throw updateError;
+
+      await loadUserData();
+      toast.success('Préstamo solicitado exitosamente');
+    } catch (error: any) {
+      console.error('Error requesting loan:', error);
+      toast.error(error.message || 'Error al solicitar el préstamo');
+    }
+  };
+
+  const returnLoan = async (loanId: string) => {
+    try {
+      const loan = loans.find(l => l.id === loanId);
+      if (!loan) {
+        toast.error('Préstamo no encontrado');
+        return;
+      }
+
+      const { error: loanError } = await supabase
+        .from('loans')
+        .update({ 
+          status: 'returned',
+          return_date: new Date().toISOString().split('T')[0]
+        })
+        .eq('id', loanId);
+      
+      if (loanError) throw loanError;
+
+      const book = books.find(b => b.id === loan.bookId);
+      if (book) {
+        const { error: updateError } = await supabase
+          .from('books')
+          .update({ 
+            units: book.units + 1,
+            available: true 
+          })
+          .eq('id', loan.bookId);
+        
+        if (updateError) throw updateError;
+      }
+
+      await loadUserData();
+      toast.success('Préstamo devuelto exitosamente');
+    } catch (error: any) {
+      console.error('Error returning loan:', error);
+      toast.error(error.message || 'Error al devolver el préstamo');
+    }
+  };
+
+  const renewLoan = async (loanId: string) => {
+    try {
+      const { error } = await supabase
+        .from('loans')
+        .update({ 
+          due_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          status: 'active'
+        })
+        .eq('id', loanId);
+      
+      if (error) throw error;
+
+      await loadUserData();
+      toast.success('Préstamo renovado exitosamente');
+    } catch (error: any) {
+      console.error('Error renewing loan:', error);
+      toast.error(error.message || 'Error al renovar el préstamo');
+    }
+  };
+
+  // ============================================
+  // FUNCIONES DE LIBROS (CRUD)
+  // ============================================
+  const addBook = async (book: Omit<Book, "id" | "popularity">) => {
+    try {
+      const { error } = await supabase
+        .from('books')
+        .insert({
+          title: book.title,
+          author: book.author,
+          isbn: book.isbn || '',
+          genre: book.category || 'Otros',
+          year: book.year || new Date().getFullYear(),
+          description: book.description || '',
+          cover_url: book.coverUrl || 'https://picsum.photos/seed/new/400/600',
+          units: book.totalUnits || 1,
+          available: book.available !== undefined ? book.available : true,
+          popularity: 50,
+        });
+      
+      if (error) throw error;
+      
+      await loadUserData();
+      toast.success('Libro creado exitosamente');
+    } catch (error: any) {
+      console.error('Error adding book:', error);
+      toast.error(error.message || 'Error al crear el libro');
+      throw error;
+    }
+  };
+
+  const updateBook = async (id: string, patch: Partial<Book>) => {
+    try {
+      const updateData: any = {};
+      if (patch.title !== undefined) updateData.title = patch.title;
+      if (patch.author !== undefined) updateData.author = patch.author;
+      if (patch.isbn !== undefined) updateData.isbn = patch.isbn;
+      if (patch.category !== undefined) updateData.genre = patch.category;
+      if (patch.year !== undefined) updateData.year = patch.year;
+      if (patch.description !== undefined) updateData.description = patch.description;
+      if (patch.coverUrl !== undefined) updateData.cover_url = patch.coverUrl;
+      if (patch.totalUnits !== undefined) {
+        updateData.units = patch.totalUnits;
+        updateData.available = patch.totalUnits > 0;
+      }
+      if (patch.available !== undefined) updateData.available = patch.available;
+      
+      const { error } = await supabase
+        .from('books')
+        .update(updateData)
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      await loadUserData();
+      toast.success('Libro actualizado exitosamente');
+    } catch (error: any) {
+      console.error('Error updating book:', error);
+      toast.error(error.message || 'Error al actualizar el libro');
+      throw error;
+    }
+  };
+
+  const deleteBook = async (id: string) => {
+    try {
+      // Eliminar préstamos relacionados primero
+      const { error: loansError } = await supabase
+        .from('loans')
+        .delete()
+        .eq('book_id', id);
+      
+      if (loansError) throw loansError;
+      
+      // Eliminar el libro
+      const { error } = await supabase
+        .from('books')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      await loadUserData();
+      toast.success('Libro eliminado exitosamente');
+    } catch (error: any) {
+      console.error('Error deleting book:', error);
+      toast.error(error.message || 'Error al eliminar el libro');
+      throw error;
+    }
+  };
+
+  const updateUser = async (patch: Partial<User>) => {
+    if (!user) return;
+    try {
+      await supabase
+        .from('profiles')
+        .update(patch)
+        .eq('id', user.id);
+      await loadUserData();
+      toast.success('Perfil actualizado exitosamente');
+    } catch (error: any) {
+      console.error('Error updating user:', error);
+      toast.error(error.message || 'Error al actualizar el perfil');
+    }
+  };
+
+  // ============================================
+  // CONTEXT VALUE
+  // ============================================
+  const value = useMemo<LibraryState>(
     () => ({
       user,
       books,
       loans,
       theme,
-      login: (email, role, name) => {
-        setUser({
-          id: CURRENT_USER_ID,
-          name: name ?? (role === "admin" ? "Administrador Demo" : "Ana Torres"),
-          email,
-          username: email.split("@")[0] || "usuario",
-          role,
-          createdAt: new Date().toISOString(),
-        });
-      },
-      logout: () => setUser(null),
-      register: ({ name, email, username, role }) => {
-        setUser({
-          id: CURRENT_USER_ID,
-          name,
-          email,
-          username,
-          role,
-          createdAt: new Date().toISOString(),
-        });
-      },
+      loading,
+      login,
+      logout,
+      register,
       toggleTheme: () => setTheme((t) => (t === "light" ? "dark" : "light")),
-      updateUser: (patch) => setUser((u) => (u ? { ...u, ...patch } : u)),
-      requestLoan: (bookId) => {
-        const book = books.find((b) => b.id === bookId);
-        if (!book || book.units <= 0 || !user) return;
-        const newLoan: Loan = {
-          id: `l${Date.now()}`,
-          bookId,
-          userId: user.id,
-          userName: user.name,
-          loanDate: addDays(0),
-          dueDate: addDays(14),
-          status: "active",
-        };
-        setLoans((prev) => [newLoan, ...prev]);
-        setBooks((prev) =>
-          prev.map((b) =>
-            b.id === bookId ? { ...b, units: b.units - 1, available: b.units - 1 > 0 } : b,
-          ),
-        );
-      },
-      returnLoan: (loanId) => {
-        setLoans((prev) => {
-          const loan = prev.find((l) => l.id === loanId);
-          if (loan) {
-            setBooks((bs) =>
-              bs.map((b) =>
-                b.id === loan.bookId ? { ...b, units: b.units + 1, available: true } : b,
-              ),
-            );
-          }
-          return prev.map((l) =>
-            l.id === loanId ? { ...l, status: "returned", returnDate: addDays(0) } : l,
-          );
-        });
-      },
-      renewLoan: (loanId) => {
-        setLoans((prev) =>
-          prev.map((l) =>
-            l.id === loanId
-              ? {
-                  ...l,
-                  dueDate: addDays(14),
-                  status: "active",
-                }
-              : l,
-          ),
-        );
-      },
-      addBook: (book) => {
-        setBooks((prev) => [
-          { ...book, id: `b${Date.now()}`, popularity: 50 },
-          ...prev,
-        ]);
-      },
-      updateBook: (id, patch) => {
-        setBooks((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch } : b)));
-      },
-      deleteBook: (id) => {
-        setBooks((prev) => prev.filter((b) => b.id !== id));
-        setLoans((prev) => prev.filter((l) => l.bookId !== id));
-      },
+      updateUser,
+      requestLoan,
+      returnLoan,
+      renewLoan,
+      addBook,
+      updateBook,
+      deleteBook,
+      loadUserData,
     }),
-    [user, books, loans, theme],
+    [user, books, loans, theme, loading]
   );
 
   return <LibraryContext.Provider value={value}>{children}</LibraryContext.Provider>;
