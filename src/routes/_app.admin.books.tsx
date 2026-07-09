@@ -72,7 +72,17 @@ function AdminBooksPage() {
   const [page, setPage] = useState(1);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Book | null>(null);
-  const [form, setForm] = useState<Omit<Book, "id" | "popularity">>(emptyBook());
+  const [form, setForm] =
+    useState<Omit<Book, "id" | "popularity">>(emptyBook());
+
+  const filtered = useMemo(() => {
+    const q = query.toLowerCase().trim();
+    return q
+      ? books.filter((b) =>
+          `${b.title} ${b.author} ${b.isbn}`.toLowerCase().includes(q),
+        )
+      : books;
+  }, [books, query]);
 
   if (user?.role !== "admin") {
     return (
@@ -81,13 +91,6 @@ function AdminBooksPage() {
       </div>
     );
   }
-
-  const filtered = useMemo(() => {
-    const q = query.toLowerCase().trim();
-    return q
-      ? books.filter((b) => `${b.title} ${b.author} ${b.isbn}`.toLowerCase().includes(q))
-      : books;
-  }, [books, query]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -105,7 +108,8 @@ function AdminBooksPage() {
   };
 
   const save = () => {
-    if (!form.title || !form.author) return toast.error("Título y autor son obligatorios");
+    if (!form.title || !form.author)
+      return toast.error("Título y autor son obligatorios");
     if (editing) {
       updateBook(editing.id, form);
       toast.success("Libro actualizado");
@@ -138,7 +142,10 @@ function AdminBooksPage() {
               }}
             />
           </div>
-          <Button className="bg-gradient-brand text-white hover:opacity-90" onClick={openNew}>
+          <Button
+            className="bg-gradient-brand text-white hover:opacity-90"
+            onClick={openNew}
+          >
             <Plus className="mr-1 h-4 w-4" /> Agregar libro
           </Button>
         </div>
@@ -161,11 +168,15 @@ function AdminBooksPage() {
             <TableBody>
               {pageItems.map((b) => (
                 <TableRow key={b.id}>
-                  <TableCell className="font-mono text-xs text-muted-foreground">{b.id}</TableCell>
+                  <TableCell className="font-mono text-xs text-muted-foreground">
+                    {b.id}
+                  </TableCell>
                   <TableCell className="font-medium">{b.title}</TableCell>
                   <TableCell>{b.author}</TableCell>
                   <TableCell className="font-mono text-xs">{b.isbn}</TableCell>
-                  <TableCell><Badge variant="secondary">{b.category}</Badge></TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">{b.category}</Badge>
+                  </TableCell>
                   <TableCell>
                     {b.available ? (
                       <Badge className="bg-success text-success-foreground">
@@ -177,7 +188,11 @@ function AdminBooksPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
-                      <Button size="icon" variant="ghost" onClick={() => openEdit(b)}>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => openEdit(b)}
+                      >
                         <Pencil className="h-4 w-4" />
                       </Button>
                       <Button
@@ -243,31 +258,51 @@ function AdminBooksPage() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editing ? "Editar libro" : "Nuevo libro"}</DialogTitle>
+            <DialogTitle>
+              {editing ? "Editar libro" : "Nuevo libro"}
+            </DialogTitle>
           </DialogHeader>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Título" className="sm:col-span-2">
-              <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+              <Input
+                value={form.title}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+              />
             </Field>
             <Field label="Autor">
-              <Input value={form.author} onChange={(e) => setForm({ ...form, author: e.target.value })} />
+              <Input
+                value={form.author}
+                onChange={(e) => setForm({ ...form, author: e.target.value })}
+              />
             </Field>
             <Field label="ISBN">
-              <Input value={form.isbn} onChange={(e) => setForm({ ...form, isbn: e.target.value })} />
+              <Input
+                value={form.isbn}
+                onChange={(e) => setForm({ ...form, isbn: e.target.value })}
+              />
             </Field>
             <Field label="Año">
               <Input
                 type="number"
                 value={form.year}
-                onChange={(e) => setForm({ ...form, year: Number(e.target.value) })}
+                onChange={(e) =>
+                  setForm({ ...form, year: Number(e.target.value) })
+                }
               />
             </Field>
             <Field label="Categoría">
-              <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select
+                value={form.category}
+                onValueChange={(v) => setForm({ ...form, category: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   {CATEGORIES.map((c) => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -275,12 +310,17 @@ function AdminBooksPage() {
             <Field label="Descripción" className="sm:col-span-2">
               <Textarea
                 value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, description: e.target.value })
+                }
                 rows={3}
               />
             </Field>
             <Field label="URL de portada" className="sm:col-span-2">
-              <Input value={form.coverUrl} onChange={(e) => setForm({ ...form, coverUrl: e.target.value })} />
+              <Input
+                value={form.coverUrl}
+                onChange={(e) => setForm({ ...form, coverUrl: e.target.value })}
+              />
             </Field>
             <Field label="Unidades">
               <Input
@@ -307,8 +347,13 @@ function AdminBooksPage() {
             </Field>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button className="bg-gradient-brand text-white hover:opacity-90" onClick={save}>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              className="bg-gradient-brand text-white hover:opacity-90"
+              onClick={save}
+            >
               {editing ? "Guardar" : "Crear"}
             </Button>
           </DialogFooter>

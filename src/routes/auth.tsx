@@ -11,6 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useLibrary } from "@/lib/library-store";
 import type { Role } from "@/lib/mock-data";
+import { getErrorMessage } from "@/lib/utils";
 
 export const Route = createFileRoute("/auth")({
   beforeLoad: () => {
@@ -26,7 +27,10 @@ export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
       { title: "Ingresar — Biblioteca" },
-      { name: "description", content: "Inicia sesión o crea una cuenta en Biblioteca." },
+      {
+        name: "description",
+        content: "Inicia sesión o crea una cuenta en Biblioteca.",
+      },
     ],
   }),
   component: AuthPage,
@@ -61,8 +65,8 @@ function AuthPage() {
       await login(lEmail, lPass);
       toast.success("Sesión iniciada correctamente");
       navigate({ to: "/dashboard" });
-    } catch (error: any) {
-      toast.error(error.message || "Error al iniciar sesión");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Error al iniciar sesión"));
     } finally {
       setIsLoading(false);
     }
@@ -88,17 +92,17 @@ function AuthPage() {
     }
     setIsLoading(true);
     try {
-      await register({ 
-        name: rName, 
-        email: rEmail, 
-        username: rUser, 
+      await register({
+        name: rName,
+        email: rEmail,
+        username: rUser,
         password: rPass,
-        role: rRole 
+        role: rRole,
       });
       toast.success("Cuenta creada correctamente");
       navigate({ to: "/dashboard" });
-    } catch (error: any) {
-      toast.error(error.message || "Error al crear la cuenta");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Error al crear la cuenta"));
     } finally {
       setIsLoading(false);
     }
@@ -115,17 +119,23 @@ function AuthPage() {
         <div className="hidden text-white lg:block">
           <div className="mb-8 inline-flex items-center gap-3 rounded-2xl bg-white/15 px-4 py-2 backdrop-blur">
             <BookOpenText className="h-6 w-6" />
-            <span className="text-sm font-semibold uppercase tracking-widest">Biblioteca</span>
+            <span className="text-sm font-semibold uppercase tracking-widest">
+              Biblioteca
+            </span>
           </div>
           <h1 className="text-5xl font-bold leading-tight tracking-tight">
             Tu catálogo, préstamos y lectores en un solo lugar.
           </h1>
           <p className="mt-4 max-w-md text-lg text-white/80">
-            Gestión moderna, ligera y clara. Encuentra libros, controla préstamos y
-            mantén tu comunidad lectora activa.
+            Gestión moderna, ligera y clara. Encuentra libros, controla
+            préstamos y mantén tu comunidad lectora activa.
           </p>
           <ul className="mt-8 space-y-3 text-white/90">
-            {["Catálogo con filtros avanzados", "Préstamos con renovación en un clic", "Panel administrativo con métricas"].map((f) => (
+            {[
+              "Catálogo con filtros avanzados",
+              "Préstamos con renovación en un clic",
+              "Panel administrativo con métricas",
+            ].map((f) => (
               <li key={f} className="flex items-center gap-3">
                 <Sparkles className="h-4 w-4" />
                 <span>{f}</span>
@@ -142,7 +152,9 @@ function AuthPage() {
             </div>
             <div>
               <div className="text-lg font-bold">Biblioteca</div>
-              <div className="text-xs text-muted-foreground">Gestión de libros</div>
+              <div className="text-xs text-muted-foreground">
+                Gestión de libros
+              </div>
             </div>
           </div>
 
@@ -171,7 +183,11 @@ function AuthPage() {
                     <Label htmlFor="l-pass">Contraseña</Label>
                     <button
                       type="button"
-                      onClick={() => toast.info("Contacta al administrador para restablecer tu contraseña")}
+                      onClick={() =>
+                        toast.info(
+                          "Contacta al administrador para restablecer tu contraseña",
+                        )
+                      }
                       className="text-xs text-primary hover:underline"
                     >
                       ¿Olvidaste tu contraseña?
@@ -187,12 +203,16 @@ function AuthPage() {
                     required
                   />
                 </div>
-                <Button 
-                  type="submit" 
-                  className="w-full bg-gradient-brand text-white shadow-brand hover:opacity-90" 
+                <Button
+                  type="submit"
+                  className="w-full bg-gradient-brand text-white shadow-brand hover:opacity-90"
                   disabled={isLoading || loading}
                 >
-                  {(isLoading || loading) ? <Loader2 className="h-4 w-4 animate-spin" /> : "Iniciar sesión"}
+                  {isLoading || loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Iniciar sesión"
+                  )}
                 </Button>
               </form>
             </TabsContent>
@@ -202,53 +222,53 @@ function AuthPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label htmlFor="r-name">Nombre completo</Label>
-                    <Input 
-                      id="r-name" 
-                      value={rName} 
-                      onChange={(e) => setRName(e.target.value)} 
+                    <Input
+                      id="r-name"
+                      value={rName}
+                      onChange={(e) => setRName(e.target.value)}
                       required
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="r-user">Usuario</Label>
-                    <Input 
-                      id="r-user" 
-                      value={rUser} 
-                      onChange={(e) => setRUser(e.target.value)} 
+                    <Input
+                      id="r-user"
+                      value={rUser}
+                      onChange={(e) => setRUser(e.target.value)}
                       required
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="r-email">Email</Label>
-                  <Input 
-                    id="r-email" 
-                    type="email" 
-                    value={rEmail} 
-                    onChange={(e) => setREmail(e.target.value)} 
+                  <Input
+                    id="r-email"
+                    type="email"
+                    value={rEmail}
+                    onChange={(e) => setREmail(e.target.value)}
                     required
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label htmlFor="r-pass">Contraseña</Label>
-                    <Input 
-                      id="r-pass" 
-                      type="password" 
+                    <Input
+                      id="r-pass"
+                      type="password"
                       placeholder="Mínimo 6 caracteres"
-                      value={rPass} 
-                      onChange={(e) => setRPass(e.target.value)} 
+                      value={rPass}
+                      onChange={(e) => setRPass(e.target.value)}
                       required
                       minLength={6}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="r-pass2">Confirmar</Label>
-                    <Input 
-                      id="r-pass2" 
-                      type="password" 
-                      value={rPass2} 
-                      onChange={(e) => setRPass2(e.target.value)} 
+                    <Input
+                      id="r-pass2"
+                      type="password"
+                      value={rPass2}
+                      onChange={(e) => setRPass2(e.target.value)}
                       required
                     />
                     {rPass2 && rPass !== rPass2 && (
@@ -274,17 +294,28 @@ function AuthPage() {
                   </RadioGroup>
                 </div>
                 <label className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <Checkbox checked={rTerms} onCheckedChange={(v) => setRTerms(v === true)} />
+                  <Checkbox
+                    checked={rTerms}
+                    onCheckedChange={(v) => setRTerms(v === true)}
+                  />
                   <span>
-                    Acepto los <span className="text-primary underline">términos y condiciones</span>.
+                    Acepto los{" "}
+                    <span className="text-primary underline">
+                      términos y condiciones
+                    </span>
+                    .
                   </span>
                 </label>
-                <Button 
-                  type="submit" 
-                  className="w-full bg-gradient-brand text-white shadow-brand hover:opacity-90" 
+                <Button
+                  type="submit"
+                  className="w-full bg-gradient-brand text-white shadow-brand hover:opacity-90"
                   disabled={isLoading || loading}
                 >
-                  {(isLoading || loading) ? <Loader2 className="h-4 w-4 animate-spin" /> : "Crear cuenta"}
+                  {isLoading || loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Crear cuenta"
+                  )}
                 </Button>
               </form>
             </TabsContent>
