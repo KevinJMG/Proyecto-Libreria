@@ -1,10 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 
-// ⚠️ TEMPORAL - Usando tus credenciales directamente
-const supabaseUrl = 'https://opbfmhfutusghqrfcybc.supabase.co';
-const supabaseKey = 'sb_publishable_CBclRGhi99HXUFJFj47VVQ_kBTj1IGs';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-console.log('✅ Supabase client initialized with credentials');
-console.log('URL:', supabaseUrl);
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error(
+    'Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY environment variables',
+  );
+}
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
