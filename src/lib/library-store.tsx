@@ -62,7 +62,7 @@ interface LibraryState {
     username: string;
     password: string;
     role: Role;
-  }) => Promise<void>;
+  }) => Promise<{ needsEmailConfirmation: boolean }>;
   toggleTheme: () => void;
   updateUser: (patch: Partial<User>) => Promise<void>;
   requestLoan: (bookId: string) => Promise<void>;
@@ -255,7 +255,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     password: string;
     role: Role;
   }) => {
-    const { error } = await supabase.auth.signUp({
+    const { data: signUpData, error } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
       options: {
@@ -267,6 +267,8 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       },
     });
     if (error) throw error;
+
+    return { needsEmailConfirmation: !signUpData.session };
   };
 
   const logout = async () => {

@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { BookOpenText, Loader2, Sparkles } from "lucide-react";
+import { BookOpenText, Loader2, MailCheck, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -53,6 +53,9 @@ function AuthPage() {
   const [rPass2, setRPass2] = useState("");
   const [rRole, setRRole] = useState<Role>("user");
   const [rTerms, setRTerms] = useState(false);
+  const [pendingConfirmationEmail, setPendingConfirmationEmail] = useState<
+    string | null
+  >(null);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,15 +95,19 @@ function AuthPage() {
     }
     setIsLoading(true);
     try {
-      await register({
+      const { needsEmailConfirmation } = await register({
         name: rName,
         email: rEmail,
         username: rUser,
         password: rPass,
         role: rRole,
       });
-      toast.success("Cuenta creada correctamente");
-      navigate({ to: "/dashboard" });
+      if (needsEmailConfirmation) {
+        setPendingConfirmationEmail(rEmail);
+      } else {
+        toast.success("Cuenta creada correctamente");
+        navigate({ to: "/dashboard" });
+      }
     } catch (error) {
       toast.error(getErrorMessage(error, "Error al crear la cuenta"));
     } finally {
@@ -158,168 +165,193 @@ function AuthPage() {
             </div>
           </div>
 
-          <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Iniciar sesión</TabsTrigger>
-              <TabsTrigger value="register">Registro</TabsTrigger>
-            </TabsList>
+          {pendingConfirmationEmail ? (
+            <div className="flex flex-col items-center py-4 text-center">
+              <div className="mb-4 grid h-14 w-14 place-items-center rounded-full bg-primary/10 text-primary">
+                <MailCheck className="h-7 w-7" />
+              </div>
+              <h2 className="text-lg font-semibold text-foreground">
+                Confirma tu correo para continuar
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Enviamos un enlace de confirmación a{" "}
+                <span className="font-medium text-foreground">
+                  {pendingConfirmationEmail}
+                </span>
+                . Ábrelo desde tu bandeja de entrada para poder iniciar sesión.
+              </p>
+              <Button
+                type="button"
+                className="mt-6 w-full bg-gradient-brand text-white shadow-brand hover:opacity-90"
+                onClick={() => setPendingConfirmationEmail(null)}
+              >
+                Ya confirmé, iniciar sesión
+              </Button>
+            </div>
+          ) : (
+            <Tabs defaultValue="login" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="login">Iniciar sesión</TabsTrigger>
+                <TabsTrigger value="register">Registro</TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="login" className="mt-6">
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="l-email">Correo electrónico</Label>
-                  <Input
-                    id="l-email"
-                    type="email"
-                    placeholder="tu@correo.com"
-                    value={lEmail}
-                    onChange={(e) => setLEmail(e.target.value)}
-                    autoComplete="email"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="l-pass">Contraseña</Label>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        toast.info(
-                          "Contacta al administrador para restablecer tu contraseña",
-                        )
-                      }
-                      className="text-xs text-primary hover:underline"
-                    >
-                      ¿Olvidaste tu contraseña?
-                    </button>
-                  </div>
-                  <Input
-                    id="l-pass"
-                    type="password"
-                    placeholder="••••••••"
-                    value={lPass}
-                    onChange={(e) => setLPass(e.target.value)}
-                    autoComplete="current-password"
-                    required
-                  />
-                </div>
-                <Button
-                  type="submit"
-                  className="w-full bg-gradient-brand text-white shadow-brand hover:opacity-90"
-                  disabled={isLoading || loading}
-                >
-                  {isLoading || loading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    "Iniciar sesión"
-                  )}
-                </Button>
-              </form>
-            </TabsContent>
-
-            <TabsContent value="register" className="mt-6">
-              <form onSubmit={handleRegister} className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
+              <TabsContent value="login" className="mt-6">
+                <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="r-name">Nombre completo</Label>
+                    <Label htmlFor="l-email">Correo electrónico</Label>
                     <Input
-                      id="r-name"
-                      value={rName}
-                      onChange={(e) => setRName(e.target.value)}
+                      id="l-email"
+                      type="email"
+                      placeholder="tu@correo.com"
+                      value={lEmail}
+                      onChange={(e) => setLEmail(e.target.value)}
+                      autoComplete="email"
                       required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="r-user">Usuario</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="l-pass">Contraseña</Label>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          toast.info(
+                            "Contacta al administrador para restablecer tu contraseña",
+                          )
+                        }
+                        className="text-xs text-primary hover:underline"
+                      >
+                        ¿Olvidaste tu contraseña?
+                      </button>
+                    </div>
                     <Input
-                      id="r-user"
-                      value={rUser}
-                      onChange={(e) => setRUser(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="r-email">Email</Label>
-                  <Input
-                    id="r-email"
-                    type="email"
-                    value={rEmail}
-                    onChange={(e) => setREmail(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="r-pass">Contraseña</Label>
-                    <Input
-                      id="r-pass"
+                      id="l-pass"
                       type="password"
-                      placeholder="Mínimo 6 caracteres"
-                      value={rPass}
-                      onChange={(e) => setRPass(e.target.value)}
-                      required
-                      minLength={6}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="r-pass2">Confirmar</Label>
-                    <Input
-                      id="r-pass2"
-                      type="password"
-                      value={rPass2}
-                      onChange={(e) => setRPass2(e.target.value)}
+                      placeholder="••••••••"
+                      value={lPass}
+                      onChange={(e) => setLPass(e.target.value)}
+                      autoComplete="current-password"
                       required
                     />
-                    {rPass2 && rPass !== rPass2 && (
-                      <p className="text-xs text-destructive">No coincide</p>
-                    )}
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Rol</Label>
-                  <RadioGroup
-                    value={rRole}
-                    onValueChange={(v) => setRRole(v as Role)}
-                    className="grid grid-cols-2 gap-2"
+                  <Button
+                    type="submit"
+                    className="w-full bg-gradient-brand text-white shadow-brand hover:opacity-90"
+                    disabled={isLoading || loading}
                   >
-                    <label className="flex cursor-pointer items-center gap-2 rounded-md border border-input p-3 hover:bg-accent/40">
-                      <RadioGroupItem value="user" id="role-user" />
-                      <span className="text-sm">Usuario</span>
-                    </label>
-                    <label className="flex cursor-pointer items-center gap-2 rounded-md border border-input p-3 hover:bg-accent/40">
-                      <RadioGroupItem value="admin" id="role-admin" />
-                      <span className="text-sm">Administrador</span>
-                    </label>
-                  </RadioGroup>
-                </div>
-                <label className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <Checkbox
-                    checked={rTerms}
-                    onCheckedChange={(v) => setRTerms(v === true)}
-                  />
-                  <span>
-                    Acepto los{" "}
-                    <span className="text-primary underline">
-                      términos y condiciones
+                    {isLoading || loading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Iniciar sesión"
+                    )}
+                  </Button>
+                </form>
+              </TabsContent>
+
+              <TabsContent value="register" className="mt-6">
+                <form onSubmit={handleRegister} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="r-name">Nombre completo</Label>
+                      <Input
+                        id="r-name"
+                        value={rName}
+                        onChange={(e) => setRName(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="r-user">Usuario</Label>
+                      <Input
+                        id="r-user"
+                        value={rUser}
+                        onChange={(e) => setRUser(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="r-email">Email</Label>
+                    <Input
+                      id="r-email"
+                      type="email"
+                      value={rEmail}
+                      onChange={(e) => setREmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="r-pass">Contraseña</Label>
+                      <Input
+                        id="r-pass"
+                        type="password"
+                        placeholder="Mínimo 6 caracteres"
+                        value={rPass}
+                        onChange={(e) => setRPass(e.target.value)}
+                        required
+                        minLength={6}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="r-pass2">Confirmar</Label>
+                      <Input
+                        id="r-pass2"
+                        type="password"
+                        value={rPass2}
+                        onChange={(e) => setRPass2(e.target.value)}
+                        required
+                      />
+                      {rPass2 && rPass !== rPass2 && (
+                        <p className="text-xs text-destructive">No coincide</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Rol</Label>
+                    <RadioGroup
+                      value={rRole}
+                      onValueChange={(v) => setRRole(v as Role)}
+                      className="grid grid-cols-2 gap-2"
+                    >
+                      <label className="flex cursor-pointer items-center gap-2 rounded-md border border-input p-3 hover:bg-accent/40">
+                        <RadioGroupItem value="user" id="role-user" />
+                        <span className="text-sm">Usuario</span>
+                      </label>
+                      <label className="flex cursor-pointer items-center gap-2 rounded-md border border-input p-3 hover:bg-accent/40">
+                        <RadioGroupItem value="admin" id="role-admin" />
+                        <span className="text-sm">Administrador</span>
+                      </label>
+                    </RadioGroup>
+                  </div>
+                  <label className="flex items-start gap-2 text-sm text-muted-foreground">
+                    <Checkbox
+                      checked={rTerms}
+                      onCheckedChange={(v) => setRTerms(v === true)}
+                    />
+                    <span>
+                      Acepto los{" "}
+                      <span className="text-primary underline">
+                        términos y condiciones
+                      </span>
+                      .
                     </span>
-                    .
-                  </span>
-                </label>
-                <Button
-                  type="submit"
-                  className="w-full bg-gradient-brand text-white shadow-brand hover:opacity-90"
-                  disabled={isLoading || loading}
-                >
-                  {isLoading || loading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    "Crear cuenta"
-                  )}
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
+                  </label>
+                  <Button
+                    type="submit"
+                    className="w-full bg-gradient-brand text-white shadow-brand hover:opacity-90"
+                    disabled={isLoading || loading}
+                  >
+                    {isLoading || loading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Crear cuenta"
+                    )}
+                  </Button>
+                </form>
+              </TabsContent>
+            </Tabs>
+          )}
         </div>
       </div>
     </div>
