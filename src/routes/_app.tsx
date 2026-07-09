@@ -1,4 +1,10 @@
-import { Link, Outlet, createFileRoute, redirect, useRouterState } from "@tanstack/react-router";
+import {
+  Link,
+  Outlet,
+  createFileRoute,
+  redirect,
+  useRouterState,
+} from "@tanstack/react-router";
 import {
   BarChart3,
   BookMarked,
@@ -38,7 +44,12 @@ export const Route = createFileRoute("/_app")({
   component: AppLayout,
 });
 
-type Item = { title: string; to: string; icon: React.ComponentType<{ className?: string }>; adminOnly?: boolean };
+type Item = {
+  title: string;
+  to: string;
+  icon: React.ComponentType<{ className?: string }>;
+  adminOnly?: boolean;
+};
 
 const items: Item[] = [
   { title: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
@@ -48,14 +59,25 @@ const items: Item[] = [
 ];
 
 const adminItems: Item[] = [
-  { title: "Administrar libros", to: "/admin/books", icon: Settings2, adminOnly: true },
-  { title: "Préstamos activos", to: "/admin/loans", icon: BarChart3, adminOnly: true },
+  {
+    title: "Administrar libros",
+    to: "/admin/books",
+    icon: Settings2,
+    adminOnly: true,
+  },
+  {
+    title: "Préstamos activos",
+    to: "/admin/loans",
+    icon: BarChart3,
+    adminOnly: true,
+  },
 ];
 
 function AppLayout() {
   const { user, logout } = useLibrary();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const isActive = (to: string) => pathname === to || pathname.startsWith(to + "/");
+  const isActive = (to: string) =>
+    pathname === to || pathname.startsWith(to + "/");
 
   return (
     <SidebarProvider>
@@ -81,7 +103,11 @@ function AppLayout() {
                 <SidebarMenu>
                   {items.map((it) => (
                     <SidebarMenuItem key={it.to}>
-                      <SidebarMenuButton asChild isActive={isActive(it.to)} tooltip={it.title}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isActive(it.to)}
+                        tooltip={it.title}
+                      >
                         <Link to={it.to}>
                           <it.icon className="h-4 w-4" />
                           <span>{it.title}</span>
@@ -100,7 +126,11 @@ function AppLayout() {
                   <SidebarMenu>
                     {adminItems.map((it) => (
                       <SidebarMenuItem key={it.to}>
-                        <SidebarMenuButton asChild isActive={isActive(it.to)} tooltip={it.title}>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={isActive(it.to)}
+                          tooltip={it.title}
+                        >
                           <Link to={it.to}>
                             <it.icon className="h-4 w-4" />
                             <span>{it.title}</span>
@@ -118,7 +148,11 @@ function AppLayout() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={isActive("/library")} tooltip="Buscar libros">
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive("/library")}
+                      tooltip="Buscar libros"
+                    >
                       <Link to="/library">
                         <Search className="h-4 w-4" />
                         <span>Buscar libros</span>
