@@ -125,6 +125,3 @@ out/
 *.pem
 *.key
 *.crt
-
-# Archivos de configuración de usuarios
-.env.*.local
