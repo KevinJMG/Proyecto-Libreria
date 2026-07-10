@@ -53,10 +53,14 @@ function MyLoansPage() {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Mis préstamos</h1>
-          <p className="text-sm text-muted-foreground">Consulta, renueva o devuelve tus libros.</p>
+          <p className="text-sm text-muted-foreground">
+            Consulta, renueva o devuelve tus libros.
+          </p>
         </div>
         <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
             <SelectItem value="active">Activos</SelectItem>
@@ -81,7 +85,10 @@ function MyLoansPage() {
             <TableBody>
               {myLoans.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
+                  <TableCell
+                    colSpan={5}
+                    className="py-10 text-center text-muted-foreground"
+                  >
                     No tienes préstamos que coincidan.
                   </TableCell>
                 </TableRow>
@@ -93,11 +100,15 @@ function MyLoansPage() {
                     <TableRow key={l.id}>
                       <TableCell>
                         <div className="font-medium">{b?.title ?? "—"}</div>
-                        <div className="text-xs text-muted-foreground">{b?.author}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {b?.author}
+                        </div>
                       </TableCell>
                       <TableCell className="text-sm">{l.loanDate}</TableCell>
                       <TableCell className="text-sm">{l.dueDate}</TableCell>
-                      <TableCell><LoanStatusBadge status={l.status} /></TableCell>
+                      <TableCell>
+                        <LoanStatusBadge status={l.status} />
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button
@@ -113,13 +124,19 @@ function MyLoansPage() {
                           </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button size="sm" disabled={isDone} className="bg-gradient-brand text-white hover:opacity-90">
+                              <Button
+                                size="sm"
+                                disabled={isDone}
+                                className="bg-gradient-brand text-white hover:opacity-90"
+                              >
                                 Devolver
                               </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>¿Devolver este libro?</AlertDialogTitle>
+                                <AlertDialogTitle>
+                                  ¿Devolver este libro?
+                                </AlertDialogTitle>
                                 <AlertDialogDescription>
                                   Marcarás "{b?.title}" como devuelto.
                                 </AlertDialogDescription>

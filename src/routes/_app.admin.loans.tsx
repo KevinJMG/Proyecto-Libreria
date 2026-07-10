@@ -33,7 +33,10 @@ function AdminLoansPage() {
     return [...counts.entries()]
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
-      .map(([bookId, count]) => ({ book: books.find((b) => b.id === bookId), count }))
+      .map(([bookId, count]) => ({
+        book: books.find((b) => b.id === bookId),
+        count,
+      }))
       .filter((x) => x.book);
   }, [loans, books]);
 
@@ -60,39 +63,70 @@ function AdminLoansPage() {
     <div className="mx-auto max-w-7xl space-y-6 p-6">
       <header>
         <h1 className="text-2xl font-bold">Gestión de préstamos</h1>
-        <p className="text-sm text-muted-foreground">Métricas y control de todos los préstamos.</p>
+        <p className="text-sm text-muted-foreground">
+          Métricas y control de todos los préstamos.
+        </p>
       </header>
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat icon={BookMarked} label="Préstamos activos" value={active} />
-        <Stat icon={AlertTriangle} label="Vencidos" value={overdue} tone="danger" />
-        <Stat icon={TrendingUp} label="Total registrados" value={loans.length} />
-        <Stat icon={Users} label="Usuarios distintos" value={new Set(loans.map((l) => l.userId)).size} />
+        <Stat
+          icon={AlertTriangle}
+          label="Vencidos"
+          value={overdue}
+          tone="danger"
+        />
+        <Stat
+          icon={TrendingUp}
+          label="Total registrados"
+          value={loans.length}
+        />
+        <Stat
+          icon={Users}
+          label="Usuarios distintos"
+          value={new Set(loans.map((l) => l.userId)).size}
+        />
       </section>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <CardHeader><CardTitle className="text-base">Libros más solicitados</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-base">Libros más solicitados</CardTitle>
+          </CardHeader>
           <CardContent className="space-y-2">
             {topBooks.map(({ book, count }) => (
               <div key={book!.id} className="flex items-center gap-3">
-                <img src={book!.coverUrl} alt="" className="h-10 w-8 rounded object-cover" />
+                <img
+                  src={book!.coverUrl}
+                  alt=""
+                  className="h-10 w-8 rounded object-cover"
+                />
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-medium">{book!.title}</div>
-                  <div className="truncate text-xs text-muted-foreground">{book!.author}</div>
+                  <div className="truncate text-sm font-medium">
+                    {book!.title}
+                  </div>
+                  <div className="truncate text-xs text-muted-foreground">
+                    {book!.author}
+                  </div>
                 </div>
-                <div className="text-sm font-semibold text-primary">{count}</div>
+                <div className="text-sm font-semibold text-primary">
+                  {count}
+                </div>
               </div>
             ))}
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle className="text-base">Usuarios más activos</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-base">Usuarios más activos</CardTitle>
+          </CardHeader>
           <CardContent className="space-y-2">
             {topUsers.map((u) => (
               <div key={u.name} className="flex items-center justify-between">
                 <span className="text-sm">{u.name}</span>
-                <span className="text-sm font-semibold text-primary">{u.count} préstamos</span>
+                <span className="text-sm font-semibold text-primary">
+                  {u.count} préstamos
+                </span>
               </div>
             ))}
           </CardContent>
@@ -100,7 +134,9 @@ function AdminLoansPage() {
       </div>
 
       <Card>
-        <CardHeader><CardTitle className="text-base">Todos los préstamos</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-base">Todos los préstamos</CardTitle>
+        </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
@@ -122,7 +158,9 @@ function AdminLoansPage() {
                     <TableCell className="font-medium">{b?.title}</TableCell>
                     <TableCell className="text-sm">{l.loanDate}</TableCell>
                     <TableCell className="text-sm">{l.dueDate}</TableCell>
-                    <TableCell><LoanStatusBadge status={l.status} /></TableCell>
+                    <TableCell>
+                      <LoanStatusBadge status={l.status} />
+                    </TableCell>
                     <TableCell className="text-right">
                       <Button
                         size="sm"
@@ -175,7 +213,12 @@ function Stat({
         </div>
       </CardHeader>
       <CardContent>
-        <div className={"text-3xl font-bold " + (tone === "danger" ? "text-destructive" : "")}>
+        <div
+          className={
+            "text-3xl font-bold " +
+            (tone === "danger" ? "text-destructive" : "")
+          }
+        >
           {value}
         </div>
       </CardContent>

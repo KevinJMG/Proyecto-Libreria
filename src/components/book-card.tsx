@@ -27,7 +27,9 @@ export function BookCard({ book, onRequest, onView }: Props) {
         </div>
         <div className="absolute right-2 top-2">
           {book.available ? (
-            <Badge className="bg-success text-success-foreground">Disponible</Badge>
+            <Badge className="bg-success text-success-foreground">
+              Disponible
+            </Badge>
           ) : (
             <Badge variant="destructive">Sin stock</Badge>
           )}
@@ -35,12 +37,18 @@ export function BookCard({ book, onRequest, onView }: Props) {
       </div>
       <CardContent className="space-y-2 p-4">
         <div>
-          <h3 className="line-clamp-1 font-semibold leading-tight">{book.title}</h3>
-          <p className="line-clamp-1 text-sm text-muted-foreground">{book.author}</p>
+          <h3 className="line-clamp-1 font-semibold leading-tight">
+            {book.title}
+          </h3>
+          <p className="line-clamp-1 text-sm text-muted-foreground">
+            {book.author}
+          </p>
         </div>
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>{book.year}</span>
-          <span>{book.units} / {book.totalUnits} disponibles</span>
+          <span>
+            {book.units} / {book.totalUnits} disponibles
+          </span>
         </div>
         <div className="flex gap-2 pt-1">
           <Button
@@ -61,7 +69,8 @@ export function BookCard({ book, onRequest, onView }: Props) {
 }
 
 export function LoanStatusBadge({ status }: { status: Loan["status"] }) {
-  if (status === "active") return <Badge className="bg-primary text-primary-foreground">Activo</Badge>;
+  if (status === "active")
+    return <Badge className="bg-primary text-primary-foreground">Activo</Badge>;
   if (status === "overdue") return <Badge variant="destructive">Vencido</Badge>;
   return <Badge variant="secondary">Devuelto</Badge>;
 }
