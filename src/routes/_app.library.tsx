@@ -31,8 +31,9 @@ function LibraryPage() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    let list = books.filter((b) => {
-      if (q && !`${b.title} ${b.author} ${b.isbn}`.toLowerCase().includes(q)) return false;
+    const list = books.filter((b) => {
+      if (q && !`${b.title} ${b.author} ${b.isbn}`.toLowerCase().includes(q))
+        return false;
       if (category !== "all" && b.category !== category) return false;
       if (avail === "yes" && !b.available) return false;
       if (avail === "no" && b.available) return false;
@@ -67,16 +68,22 @@ function LibraryPage() {
           />
         </div>
         <Select value={category} onValueChange={setCategory}>
-          <SelectTrigger><SelectValue placeholder="Categoría" /></SelectTrigger>
+          <SelectTrigger>
+            <SelectValue placeholder="Categoría" />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas las categorías</SelectItem>
             {CATEGORIES.map((c) => (
-              <SelectItem key={c} value={c}>{c}</SelectItem>
+              <SelectItem key={c} value={c}>
+                {c}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
         <Select value={avail} onValueChange={setAvail}>
-          <SelectTrigger><SelectValue placeholder="Disponibilidad" /></SelectTrigger>
+          <SelectTrigger>
+            <SelectValue placeholder="Disponibilidad" />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
             <SelectItem value="yes">Disponibles</SelectItem>
@@ -84,7 +91,9 @@ function LibraryPage() {
           </SelectContent>
         </Select>
         <Select value={sort} onValueChange={setSort}>
-          <SelectTrigger><SelectValue placeholder="Ordenar" /></SelectTrigger>
+          <SelectTrigger>
+            <SelectValue placeholder="Ordenar" />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="popularity">Más populares</SelectItem>
             <SelectItem value="title">Título</SelectItem>
@@ -114,7 +123,10 @@ function LibraryPage() {
         </div>
       )}
 
-      <BookDetailDialog book={selected} onOpenChange={(o) => !o && setSelected(null)} />
+      <BookDetailDialog
+        book={selected}
+        onOpenChange={(o) => !o && setSelected(null)}
+      />
     </div>
   );
 }

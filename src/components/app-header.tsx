@@ -50,13 +50,27 @@ export function AppHeader() {
         />
       </div>
       <div className="ml-auto flex items-center gap-1.5">
-        <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Cambiar tema">
-          {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleTheme}
+          aria-label="Cambiar tema"
+        >
+          {theme === "light" ? (
+            <Moon className="h-4 w-4" />
+          ) : (
+            <Sun className="h-4 w-4" />
+          )}
         </Button>
 
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative" aria-label="Notificaciones">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative"
+              aria-label="Notificaciones"
+            >
               <Bell className="h-4 w-4" />
               {overdueForMe.length > 0 && (
                 <span className="absolute -right-0.5 -top-0.5 grid h-4 w-4 place-items-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
@@ -68,13 +82,18 @@ export function AppHeader() {
           <PopoverContent align="end" className="w-80">
             <div className="mb-2 text-sm font-semibold">Notificaciones</div>
             {overdueForMe.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Sin notificaciones nuevas.</p>
+              <p className="text-sm text-muted-foreground">
+                Sin notificaciones nuevas.
+              </p>
             ) : (
               <ul className="space-y-2">
                 {overdueForMe.map((l) => {
                   const b = books.find((x) => x.id === l.bookId);
                   return (
-                    <li key={l.id} className="rounded-md border border-border p-2 text-sm">
+                    <li
+                      key={l.id}
+                      className="rounded-md border border-border p-2 text-sm"
+                    >
                       <div className="flex items-center gap-2">
                         <Badge variant="destructive">Vencido</Badge>
                         <span className="font-medium">{b?.title}</span>
@@ -99,7 +118,9 @@ export function AppHeader() {
                 </AvatarFallback>
               </Avatar>
               <div className="hidden text-left sm:block">
-                <div className="text-xs font-semibold leading-tight">{user?.name}</div>
+                <div className="text-xs font-semibold leading-tight">
+                  {user?.name}
+                </div>
                 <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
                   {user?.role === "admin" ? "Administrador" : "Usuario"}
                 </div>
