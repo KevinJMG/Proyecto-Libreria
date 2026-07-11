@@ -202,7 +202,7 @@ function AuthPage() {
                     <Input
                       id="l-email"
                       type="email"
-                      placeholder="tu@correo.com"
+                      placeholder="ingresatu@correo.com"
                       value={lEmail}
                       onChange={(e) => setLEmail(e.target.value)}
                       autoComplete="email"
